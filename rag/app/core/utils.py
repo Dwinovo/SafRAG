@@ -4,8 +4,14 @@ def extract_text(node: Any) -> str:
     if hasattr(node, "get_content"):
         return node.get_content(metadata_mode="none")
     if hasattr(node, "text") and node.text is not None:
-        return node.text
+        return sanitize_text(node.text)
     return ""
+
+def sanitize_text(text: str) -> str:
+    if not text:
+        return ""
+    # Remove surrogates and other non-utf-8 characters
+    return text.encode('utf-8', 'ignore').decode('utf-8')
 
 
 def normalize_metadata(metadata: Optional[Mapping[str, Any]]) -> Dict[str, Any]:

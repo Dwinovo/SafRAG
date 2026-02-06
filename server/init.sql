@@ -103,3 +103,22 @@ create table user
 )
     charset = utf8mb4;
 
+
+-- ----------------------------
+-- Records of levels
+-- ----------------------------
+INSERT INTO `levels` (id, name, priority, description) VALUES 
+(1, 'Top-Secret', 1, 'Highest level of security clearance'),
+(2, 'Restricted', 2, 'Restricted access only'),
+(3, 'Confidential', 3, 'Confidential internal data'),
+(4, 'Internal', 4, 'General internal access'),
+(5, 'Public', 5, 'Publicly accessible data');
+
+-- ----------------------------
+-- Records of user
+-- ----------------------------
+-- Default Admin User
+-- Username: admin
+-- Password: 123456 (Hash: $2a$10$N.zmdr9k7uOCQb376NoUnutj8iAt6.VwueM17/vD/dPBnGdL6iBui)
+INSERT INTO `user` (id, username, password, level_id, avatar_url) VALUES 
+(1, 'admin', '$2a$10$N9qo8uLOickgx2ZMRZoMyeIjZAgcfl7p92ldGxad68LJZdL17lhWy', 1, NULL);

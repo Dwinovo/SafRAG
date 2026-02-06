@@ -11,7 +11,7 @@ from fastapi.responses import JSONResponse
 from llama_index.core import SimpleDirectoryReader
 from llama_index.core.vector_stores import ExactMatchFilter, FilterCondition, MetadataFilters
 
-from app.core.utils import extract_text, normalize_metadata, serialize_node
+from app.core.utils import extract_text, normalize_metadata, serialize_node, sanitize_text
 from app.dto.schemas import ApiResponse, IngestRequest, RetrieveRequest
 from app.services.rag import get_chroma_collection, get_index, get_node_parser
 
@@ -20,10 +20,15 @@ router = APIRouter()
 
 
 @router.post("/ingest", response_model=ApiResponse)
-async def ingest_document(request: Request, body: IngestRequest) -> ApiResponse:
+async def ingest_document(request: Request) -> ApiResponse:
     temp_dir_path: Optional[Path] = None
 
     try:
+        raw_body_bytes = await request.body()
+        logger.info(f"Raw body received: {raw_body_bytes.decode('utf-8', errors='replace')}")
+        
+        json_body = await request.json()
+        body = IngestRequest(**json_body)
         index = get_index(request.app)
         node_parser = get_node_parser(request.app)
 
@@ -42,14 +47,36 @@ async def ingest_document(request: Request, body: IngestRequest) -> ApiResponse:
         reader = SimpleDirectoryReader(input_files=[str(temp_file_path)])
         documents = reader.load_data()
 
+        cleaned_documents = []
         for doc in documents:
+            # Sanitize text to remove surrogates
+            original_text = doc.get_content() if hasattr(doc, "get_content") else (doc.text or "")
+            cleaned_text = sanitize_text(original_text)
+            
+            # Recreate document/node with cleaned text
+            # We modify the existing doc object using set_content if possible, 
+            # otherwise we might need to rely on the fact that we can just pass the list to node_parser.
+            # LlamaIndex Document usually has a setText or we just create a new one.
+            
+            # safest way: update the doc using provided methods if available, or just create new one
+            # doc is likely a Pydantic model. 
+            # In LlamaIndex 0.10+, doc.text is a property that wraps self.get_content()
+            # self.set_content(value) should work if available.
+            
+            # Let's try doc.set_content(cleaned_text) first? 
+            # But wait, looking at the error "can't set attribute 'text'", it confirms 'text' is a property without setter.
+            # BaseComponent -> TextNode -> ... 
+            
+            # Let's just create a new list of documents to be safe.
+            doc.set_content(cleaned_text)
             doc.metadata = {
                 "knowledge_base_id": body.knowledge_base_id,
                 "source": filename,
                 "document_id": body.document_id,
             }
+            cleaned_documents.append(doc)
 
-        nodes = node_parser.get_nodes_from_documents(documents)
+        nodes = node_parser.get_nodes_from_documents(cleaned_documents)
 
         formatted_nodes: List[Dict[str, Any]] = []
 

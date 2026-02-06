@@ -1,5 +1,5 @@
 # Stage 1: Build
-FROM swr.cn-north-4.myhuaweicloud.com/ddn-k8s/docker.io/maven:3.9-eclipse-temurin-21 AS build
+FROM maven:3.9-eclipse-temurin-21 AS build
 WORKDIR /app
 COPY safrag/pom.xml .
 COPY safrag/src ./src
@@ -7,7 +7,7 @@ COPY safrag/src ./src
 RUN mvn clean package -DskipTests
 
 # Stage 2: Run
-FROM swr.cn-north-4.myhuaweicloud.com/ddn-k8s/docker.io/openjdk:21
+FROM eclipse-temurin:21
 WORKDIR /app
 # 从第一阶段复制构建好的 jar 包
 COPY --from=build /app/target/safrag-0.0.1-SNAPSHOT.jar app.jar

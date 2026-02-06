@@ -22,8 +22,8 @@ services:
       - minio
     entrypoint: >
       /bin/sh -c "
-      /usr/bin/mc config host add myminio http://minio:9000 ${S3_USERNAME} ${S3_PASSWORD};
-      /usr/bin/mc mb myminio/${S3_BUCKET_NAME};
+      /usr/bin/mc alias set myminio http://minio:9000 ${S3_USERNAME} ${S3_PASSWORD};
+      /usr/bin/mc mb -p myminio/${S3_BUCKET_NAME};
       /usr/bin/mc anonymous set public myminio/${S3_BUCKET_NAME};
       exit 0;
       "
@@ -56,16 +56,13 @@ services:
       - "8000:8000"
     volumes:
       - ./rag/app:/app/app # 开发模式下挂载源码以便热重载
-      - ./rag/embedding_models:/app/embedding_models # 模型持久化挂载
     environment:
-      HF_ENDPOINT: https://hf-mirror.com
-      # 指向挂载目录，让 transformers/sentence-transformers 将模型下载到这里
-      HF_HOME: /app/embedding_models
       # === RAG Config ===
-      EMBEDDING_MODEL_PATH: ${EMBEDDING_MODEL_PATH}
+      OPENAI_API_KEY: ${OPENAI_API_KEY}
+      OPENAI_BASE_URL: ${OPENAI_BASE_URL}
+    restart: always
     networks:
       - safrag
-    restart: always
 
   server:
     build: 
@@ -76,7 +73,8 @@ services:
       - "8080:8080"
     environment:
       # === Database ===
-      DB_URL: ${DB_URL:-jdbc:mysql://mysql:3306/safrag?useSSL=false&allowPublicKeyRetrieval=true&serverTimezone=UTC&createDatabaseIfNotExist=true}
+      # === Database ===
+      DB_URL: ${DB_URL}
       DB_USERNAME: ${DB_USERNAME}
       DB_PASSWORD: ${DB_PASSWORD}
       
@@ -90,7 +88,7 @@ services:
       
       # === S3 / MinIO ===
       S3_ENDPOINT: ${S3_ENDPOINT}
-      S3_PUBLIC_ENDPOINT: ${S3_PUBLIC_ENDPOINT:-http://localhost:9000}
+      S3_PUBLIC_ENDPOINT: ${S3_PUBLIC_ENDPOINT}
       S3_USERNAME: ${S3_USERNAME}
       S3_PASSWORD: ${S3_PASSWORD}
       S3_BUCKET_NAME: ${S3_BUCKET_NAME}

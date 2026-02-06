@@ -160,6 +160,8 @@ export const PromptBox = React.forwardRef<HTMLTextAreaElement, PromptBoxProps>((
   const [kbError, setKbError] = React.useState<string | null>(null);
   const [kbSearchTerm, setKbSearchTerm] = React.useState("");
   const [isImageDialogOpen, setIsImageDialogOpen] = React.useState(false);
+  const kbFetchedRef = React.useRef(false);
+  const kbFetchInFlightRef = React.useRef(false);
 
   const selectedKnowledgeBases = React.useMemo(() => {
     if (!selectedKnowledgeBaseIds.length) return [];
@@ -174,7 +176,10 @@ export const PromptBox = React.forwardRef<HTMLTextAreaElement, PromptBoxProps>((
     ? `已选 ${selectedKnowledgeBases.length} 个`
     : "选择知识库";
 
-  const fetchKnowledgeBases = React.useCallback(async () => {
+  const fetchKnowledgeBases = React.useCallback(async (force = false) => {
+    if (kbFetchInFlightRef.current) return;
+    if (!force && kbFetchedRef.current) return;
+    kbFetchInFlightRef.current = true;
     setKbLoading(true);
     setKbError(null);
     try {
@@ -196,6 +201,8 @@ export const PromptBox = React.forwardRef<HTMLTextAreaElement, PromptBoxProps>((
       const message = error?.response?.data?.message || error?.message || "加载知识库失败";
       setKbError(message);
     } finally {
+      kbFetchInFlightRef.current = false;
+      kbFetchedRef.current = true;
       setKbLoading(false);
     }
   }, []);
@@ -204,10 +211,10 @@ export const PromptBox = React.forwardRef<HTMLTextAreaElement, PromptBoxProps>((
     if (!kbPopoverOpen) return;
     setTempSelectedKnowledgeBaseIds(selectedKnowledgeBaseIds);
     setKbSearchTerm("");
-    if (!knowledgeBases.length && !kbLoading && !kbError) {
+    if (!kbFetchedRef.current) {
       fetchKnowledgeBases();
     }
-  }, [kbPopoverOpen, selectedKnowledgeBaseIds, knowledgeBases.length, kbLoading, kbError, fetchKnowledgeBases]);
+  }, [kbPopoverOpen, selectedKnowledgeBaseIds, fetchKnowledgeBases]);
 
   const filteredKnowledgeBases = React.useMemo(() => {
     if (!kbSearchTerm.trim()) {
@@ -314,6 +321,9 @@ export const PromptBox = React.forwardRef<HTMLTextAreaElement, PromptBoxProps>((
               open={kbPopoverOpen}
               onOpenChange={(open) => {
                 setKbPopoverOpen(open);
+                if (!open && !knowledgeBases.length) {
+                  kbFetchedRef.current = false;
+                }
                 if (open) {
                   setTempSelectedKnowledgeBaseIds(selectedKnowledgeBaseIds);
                 }
@@ -341,7 +351,7 @@ export const PromptBox = React.forwardRef<HTMLTextAreaElement, PromptBoxProps>((
                   ) : kbError ? (
                     <div className="space-y-3">
                       <p className="text-sm text-red-500">{kbError}</p>
-                      <Button type="button" size="sm" variant="outline" onClick={fetchKnowledgeBases}>
+                      <Button type="button" size="sm" variant="outline" onClick={() => fetchKnowledgeBases(true)}>
                         重试
                       </Button>
                     </div>

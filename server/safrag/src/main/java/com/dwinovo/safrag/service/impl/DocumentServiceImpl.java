@@ -7,6 +7,8 @@ import com.dwinovo.safrag.mapper.NodeMapper;
 import com.dwinovo.safrag.pojo.Document;
 import com.dwinovo.safrag.pojo.Node;
 import com.dwinovo.safrag.pojo.RagIngestResponse;
+import com.dwinovo.safrag.pojo.RagIngestRequest;
+import com.dwinovo.safrag.pojo.S3Properties;
 import com.dwinovo.safrag.service.DocumentService;
 import com.dwinovo.safrag.utils.OSSUtils;
 import java.net.URI;
@@ -15,6 +17,8 @@ import java.util.Collections;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+import com.fasterxml.jackson.databind.ObjectMapper;
+import java.net.URISyntaxException;
 import java.util.concurrent.CompletableFuture;
 import java.util.stream.Collectors;
 import lombok.extern.slf4j.Slf4j;
@@ -50,6 +54,9 @@ public class DocumentServiceImpl implements DocumentService {
 
     @Autowired
     private OSSUtils ossUtils;
+
+    @Autowired
+    private S3Properties s3Properties;
 
     @Value("${rag.server.host:}")
     private String ragServerHost;
@@ -137,27 +144,35 @@ public class DocumentServiceImpl implements DocumentService {
             updateDocumentStatus(documentId, STATUS_FAILED);
             return;
         }
-        String ingestUrl = ragServerHost+"/ingest";
-        if (!StringUtils.hasText(ingestUrl)) {
+        if (!StringUtils.hasText(ragServerHost)) {
             log.warn("RAG Server 未配置，跳过文档 {} 的切片。", documentId);
             updateDocumentStatus(documentId, STATUS_FAILED);
             return;
         }
+        String ingestUrl = ragServerHost.endsWith("/") ? ragServerHost + "ingest" : ragServerHost + "/ingest";
 
-        Map<String, Object> payload = new HashMap<>(4);
-        payload.put("knowledge_base_id", document.getKnowledgeBaseId());
-        payload.put("document_url", document.getFileUrl());
-        payload.put("document_id", documentId);
+        String ragDocumentUrl = resolveRagDocumentUrl(document.getFileUrl());
+        RagIngestRequest payload = RagIngestRequest.builder()
+                .knowledgeBaseId(document.getKnowledgeBaseId())
+                .documentUrl(ragDocumentUrl)
+                .documentId(documentId)
+                .build();
 
         try {
+            // DEBUG LOGGING
+            ObjectMapper mapper = new ObjectMapper();
+            String jsonPayload = mapper.writeValueAsString(payload);
+            log.info("RAG Ingest Request -> URL: {}, Payload: {}", ingestUrl, jsonPayload);
+
             HttpHeaders headers = new HttpHeaders();
             headers.setContentType(MediaType.APPLICATION_JSON);
             headers.setAccept(Collections.singletonList(MediaType.APPLICATION_JSON));
-            HttpEntity<Map<String, Object>> entity = new HttpEntity<>(payload, headers);
+            HttpEntity<RagIngestRequest> entity = new HttpEntity<>(payload, headers);
             
             ResponseEntity<RagIngestResponse> response = restTemplate.postForEntity(ingestUrl, entity, RagIngestResponse.class);
             
             if (!response.getStatusCode().is2xxSuccessful()) {
+                log.error("RAG Ingest Failed -> Status: {}, Body: {}", response.getStatusCode(), response.getBody());
                 updateDocumentStatus(documentId, STATUS_FAILED);
                 return;
             }
@@ -177,6 +192,7 @@ public class DocumentServiceImpl implements DocumentService {
 
             updateDocumentStatus(documentId, STATUS_COMPLETED);
         } catch (HttpClientErrorException httpError) {
+            log.error("RAG Ingest HTTP Error -> Status: {}, ResponseBody: {}", httpError.getStatusCode(), httpError.getResponseBodyAsString());
             updateDocumentStatus(documentId, STATUS_FAILED);
         } catch (Exception ex) {
             log.error("处理文档 {} 的 RAG 切片时发生异常", documentId, ex);
@@ -238,5 +254,43 @@ public class DocumentServiceImpl implements DocumentService {
         } catch (Exception ex) {
             log.error("删除文档 {} 的 RAG 节点时发生异常", documentId, ex);
         }
+    }
+
+    private String resolveRagDocumentUrl(String fileUrl) {
+        if (!StringUtils.hasText(fileUrl)) {
+            return fileUrl;
+        }
+
+        String internalEndpoint = s3Properties != null ? s3Properties.getEndpoint() : null;
+        if (!StringUtils.hasText(internalEndpoint)) {
+            return fileUrl;
+        }
+
+        String publicEndpoint = s3Properties != null ? s3Properties.getPublicEndpoint() : null;
+        String normalizedInternal = trimTrailingSlash(internalEndpoint);
+        if (StringUtils.hasText(publicEndpoint)) {
+            String normalizedPublic = trimTrailingSlash(publicEndpoint);
+            if (fileUrl.startsWith(normalizedPublic)) {
+                return normalizedInternal + fileUrl.substring(normalizedPublic.length());
+            }
+        }
+
+        try {
+            URI uri = new URI(fileUrl);
+            String host = uri.getHost();
+            if ("localhost".equalsIgnoreCase(host) || "127.0.0.1".equals(host)) {
+                return normalizedInternal + uri.getRawPath();
+            }
+        } catch (URISyntaxException ignored) {
+        }
+
+        return fileUrl;
+    }
+
+    private String trimTrailingSlash(String value) {
+        if (!StringUtils.hasText(value)) {
+            return value;
+        }
+        return value.endsWith("/") ? value.substring(0, value.length() - 1) : value;
     }
 }

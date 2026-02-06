@@ -95,3 +95,10 @@ build/
 # Project Data (Exclude from git)
 minio/data/
 rag/embedding_models/
+# Python
+__pycache__/
+__pycache__/**
+**/__pycache__/
+**/__pycache__/**
+*.py[cod]
+*$py.class
