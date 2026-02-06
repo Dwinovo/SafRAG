@@ -1,0 +1,73 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.dwinovo.safrag.mapper.DocumentMapper">
+
+    <resultMap id="DocumentResultMap" type="com.dwinovo.safrag.pojo.Document">
+        <id property="id" column="id" />
+        <result property="knowledgeBaseId" column="knowledge_base_id" />
+        <result property="fileName" column="file_name" />
+        <result property="fileUrl" column="file_url" />
+        <result property="fileSize" column="file_size" />
+        <result property="processingStatus" column="processing_status" />
+        <result property="createdAt" column="created_at" />
+        <result property="updatedAt" column="updated_at" />
+    </resultMap>
+
+    <sql id="DocumentColumns">
+        id,
+        knowledge_base_id,
+        file_name,
+        file_url,
+        file_size,
+        processing_status,
+        created_at,
+        updated_at
+    </sql>
+
+    <insert id="insert" parameterType="com.dwinovo.safrag.pojo.Document" useGeneratedKeys="true" keyProperty="id">
+        INSERT INTO documents (
+            knowledge_base_id,
+            file_name,
+            file_url,
+            file_size,
+            processing_status
+        ) VALUES (
+            #{knowledgeBaseId},
+            #{fileName},
+            #{fileUrl},
+            #{fileSize},
+            #{processingStatus}
+        )
+    </insert>
+
+    <select id="findById" parameterType="long" resultMap="DocumentResultMap">
+        SELECT <include refid="DocumentColumns"/>
+        FROM documents
+        WHERE id = #{id}
+    </select>
+
+    <select id="listByKnowledgeBaseId" parameterType="long" resultMap="DocumentResultMap">
+        SELECT <include refid="DocumentColumns"/>
+        FROM documents
+        WHERE knowledge_base_id = #{knowledgeBaseId}
+        ORDER BY created_at DESC, id DESC
+    </select>
+
+    <update id="update" parameterType="com.dwinovo.safrag.pojo.Document">
+        UPDATE documents
+        <set>
+            <if test="fileName != null">file_name = #{fileName},</if>
+            <if test="fileUrl != null">file_url = #{fileUrl},</if>
+            <if test="fileSize != null">file_size = #{fileSize},</if>
+            <if test="processingStatus != null">processing_status = #{processingStatus},</if>
+            updated_at = NOW()
+        </set>
+        WHERE id = #{id}
+    </update>
+
+    <delete id="deleteById" parameterType="long">
+        DELETE FROM documents WHERE id = #{id}
+    </delete>
+
+</mapper>
+

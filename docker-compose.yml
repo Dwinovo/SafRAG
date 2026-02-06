@@ -1,0 +1,135 @@
+services:
+  minio:
+    image: minio/minio:RELEASE.2024-01-31T20-20-33Z
+    container_name: safrag-minio
+    ports:
+      - "9000:9000"
+      - "9001:9001"
+    volumes:
+      - ./minio/data:/data
+    environment:
+      MINIO_ROOT_USER: ${S3_USERNAME}
+      MINIO_ROOT_PASSWORD: ${S3_PASSWORD}
+    command: server /data --console-address ":9001"
+    restart: always
+    networks:
+      - safrag
+
+  createbuckets:
+    image: minio/mc
+    container_name: safrag-createbuckets
+    depends_on:
+      - minio
+    entrypoint: >
+      /bin/sh -c "
+      /usr/bin/mc config host add myminio http://minio:9000 ${S3_USERNAME} ${S3_PASSWORD};
+      /usr/bin/mc mb myminio/${S3_BUCKET_NAME};
+      /usr/bin/mc anonymous set public myminio/${S3_BUCKET_NAME};
+      exit 0;
+      "
+    networks:
+      - safrag
+
+  mysql:
+    image: mysql:8.0
+    container_name: safrag-mysql
+    environment:
+      MYSQL_ROOT_PASSWORD: ${DB_PASSWORD}
+      MYSQL_DATABASE: safrag
+    volumes:
+      # 自动初始化数据库脚本
+      - ./server/init.sql:/docker-entrypoint-initdb.d/init.sql
+      - mysql_data:/var/lib/mysql
+    ports:
+      - "3306:3306"
+    command: --default-authentication-plugin=mysql_native_password
+    restart: always
+    networks:
+      - safrag
+
+  rag:
+    build:
+      context: ./rag
+      dockerfile: Dockerfile
+    container_name: safrag-rag
+    ports:
+      - "8000:8000"
+    volumes:
+      - ./rag/app:/app/app # 开发模式下挂载源码以便热重载
+      - ./rag/embedding_models:/app/embedding_models # 模型持久化挂载
+    environment:
+      HF_ENDPOINT: https://hf-mirror.com
+      # 指向挂载目录，让 transformers/sentence-transformers 将模型下载到这里
+      HF_HOME: /app/embedding_models
+      # === RAG Config ===
+      EMBEDDING_MODEL_PATH: ${EMBEDDING_MODEL_PATH}
+    networks:
+      - safrag
+    restart: always
+
+  server:
+    build: 
+      context: ./server
+      dockerfile: Dockerfile
+    container_name: safrag-server
+    ports:
+      - "8080:8080"
+    environment:
+      # === Database ===
+      DB_URL: ${DB_URL:-jdbc:mysql://mysql:3306/safrag?useSSL=false&allowPublicKeyRetrieval=true&serverTimezone=UTC&createDatabaseIfNotExist=true}
+      DB_USERNAME: ${DB_USERNAME}
+      DB_PASSWORD: ${DB_PASSWORD}
+      
+      # === Security ===
+      JWT_SECRET: ${JWT_SECRET}
+
+      # === OpenAI ===
+      OPENAI_BASE_URL: ${OPENAI_BASE_URL}
+      OPENAI_API_KEY: ${OPENAI_API_KEY}
+      OPENAI_MODEL: ${OPENAI_MODEL}
+      
+      # === S3 / MinIO ===
+      S3_ENDPOINT: ${S3_ENDPOINT}
+      S3_PUBLIC_ENDPOINT: ${S3_PUBLIC_ENDPOINT:-http://localhost:9000}
+      S3_USERNAME: ${S3_USERNAME}
+      S3_PASSWORD: ${S3_PASSWORD}
+      S3_BUCKET_NAME: ${S3_BUCKET_NAME}
+      
+      # === RAG Server ===
+      RAG_SERVER_HOST: ${RAG_SERVER_HOST}
+      
+      # === App Config ===
+      APP_DOMAIN: "" # Empty for Docker/Local
+      CORS_ALLOWED_ORIGINS: "*"
+    depends_on:
+      - mysql
+      - rag
+      - minio
+    restart: always
+    networks:
+      - safrag
+
+  client:
+    build:
+      context: ./client
+      dockerfile: Dockerfile
+      args:
+        NEXT_PUBLIC_API_BASE: ${NEXT_PUBLIC_API_BASE}
+    container_name: safrag-client
+    ports:
+      - "3000:3000"
+    environment:
+      # === Client Config ===
+      NEXT_PUBLIC_API_BASE: ${NEXT_PUBLIC_API_BASE}
+    depends_on:
+      - server
+    restart: always
+    networks:
+      - safrag
+
+volumes:
+  mysql_data:
+
+networks:
+  safrag:
+    driver: bridge

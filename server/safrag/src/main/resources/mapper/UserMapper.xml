@@ -1,0 +1,112 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.dwinovo.safrag.mapper.UserMapper">
+
+    <resultMap id="UserMap" type="com.dwinovo.safrag.pojo.User">
+        <id property="id" column="id"/>
+        <result property="username" column="username"/>
+        <result property="password" column="password"/>
+        <result property="levelId" column="level_id"/>
+        <result property="avatarUrl" column="avatar_url"/>
+        <result property="levelName" column="level_name"/>
+        <result property="priority" column="priority"/>
+    </resultMap>
+
+    <select id="findByUsername" parameterType="string" resultMap="UserMap">
+        SELECT u.id,
+               u.username,
+               u.password,
+               u.level_id,
+               u.avatar_url,
+               lvl.name AS level_name,
+               lvl.priority AS priority
+        FROM user u
+        LEFT JOIN levels lvl ON u.level_id = lvl.id
+        WHERE u.username = #{username}
+        LIMIT 1
+    </select>
+
+    <select id="findById" parameterType="long" resultMap="UserMap">
+        SELECT u.id,
+               u.username,
+               u.password,
+               u.level_id,
+               u.avatar_url,
+               lvl.name AS level_name,
+               lvl.priority AS priority
+        FROM user u
+        LEFT JOIN levels lvl ON u.level_id = lvl.id
+        WHERE u.id = #{id}
+        LIMIT 1
+    </select>
+
+    <insert id="insert" parameterType="com.dwinovo.safrag.pojo.User" useGeneratedKeys="true" keyProperty="id">
+        INSERT INTO user (username, password, level_id, avatar_url)
+        VALUES (#{username}, #{password}, #{levelId}, #{avatarUrl})
+    </insert>
+
+    <update id="updateUser">
+        UPDATE user
+        <set>
+            <if test="username != null">
+                username = #{username},
+            </if>
+            <if test="avatarUrl != null">
+                avatar_url = #{avatarUrl},
+            </if>
+            <if test="levelId != null">
+                level_id = #{levelId},
+            </if>
+        </set>
+        WHERE id = #{id}
+    </update>
+
+    <select id="findAll" resultMap="UserMap">
+        SELECT u.id,
+               u.username,
+               u.password,
+               u.level_id,
+               u.avatar_url,
+               lvl.name AS level_name,
+               lvl.priority AS priority
+        FROM user u
+        LEFT JOIN levels lvl ON u.level_id = lvl.id
+        ORDER BY lvl.priority ASC, u.id ASC
+    </select>
+
+    <select id="findByConditions" resultMap="UserMap">
+        SELECT u.id,
+               u.username,
+               u.password,
+               u.level_id,
+               u.avatar_url,
+               lvl.name AS level_name,
+               lvl.priority AS priority
+        FROM user u
+        LEFT JOIN levels lvl ON u.level_id = lvl.id
+        <where>
+            <if test="username != null and username != ''">
+                AND u.username LIKE CONCAT('%', #{username}, '%')
+            </if>
+            <if test="levelName != null and levelName != ''">
+                AND lvl.name = #{levelName}
+            </if>
+        </where>
+        ORDER BY lvl.priority ASC, u.id ASC
+    </select>
+
+    <select id="countByConditions" resultType="long">
+        SELECT COUNT(1)
+        FROM user u
+        LEFT JOIN levels lvl ON u.level_id = lvl.id
+        <where>
+            <if test="username != null and username != ''">
+                AND u.username LIKE CONCAT('%', #{username}, '%')
+            </if>
+            <if test="levelName != null and levelName != ''">
+                AND lvl.name = #{levelName}
+            </if>
+        </where>
+    </select>
+
+</mapper>

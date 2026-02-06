@@ -1,0 +1,39 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.dwinovo.safrag.mapper.LevelMapper">
+
+    <resultMap id="LevelMap" type="com.dwinovo.safrag.pojo.Level">
+        <id property="id" column="id"/>
+        <result property="name" column="name"/>
+        <result property="priority" column="priority"/>
+        <result property="description" column="description"/>
+        <result property="createdAt" column="created_at"/>
+        <result property="updatedAt" column="updated_at"/>
+    </resultMap>
+
+    <select id="findAll" resultMap="LevelMap">
+        SELECT
+            id,
+            name,
+            priority,
+            description,
+            created_at,
+            updated_at
+        FROM levels
+        ORDER BY priority ASC, id ASC
+    </select>
+
+    <select id="findByName" parameterType="string" resultMap="LevelMap">
+        SELECT
+            id,
+            name,
+            priority,
+            description,
+            created_at,
+            updated_at
+        FROM levels
+        WHERE name = #{name}
+        LIMIT 1
+    </select>
+
+</mapper>

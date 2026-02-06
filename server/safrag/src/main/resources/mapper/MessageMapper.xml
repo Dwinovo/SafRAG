@@ -1,0 +1,30 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.dwinovo.safrag.mapper.MessageMapper">
+
+    <resultMap id="MessageMap" type="com.dwinovo.safrag.pojo.Message">
+        <id property="id" column="id"/>
+        <result property="conversationId" column="conversation_id"/>
+        <result property="role" column="role"/>
+        <result property="content" column="content"/>
+        <result property="createdAt" column="created_at"/>
+    </resultMap>
+
+    <insert id="insert" parameterType="com.dwinovo.safrag.pojo.Message" useGeneratedKeys="true" keyProperty="id">
+        INSERT INTO messages (conversation_id, role, content, created_at)
+        VALUES (#{conversationId}, #{role}, #{content}, NOW())
+    </insert>
+
+    <delete id="deleteByConversationId" parameterType="long">
+        DELETE FROM messages WHERE conversation_id = #{conversationId}
+    </delete>
+
+    <select id="listByConversationId" parameterType="long" resultMap="MessageMap">
+        SELECT id, conversation_id, role, content, created_at
+        FROM messages
+        WHERE conversation_id = #{conversationId}
+        ORDER BY created_at ASC
+    </select>
+
+</mapper>
+

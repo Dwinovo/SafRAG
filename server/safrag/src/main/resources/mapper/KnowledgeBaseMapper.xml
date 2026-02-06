@@ -1,0 +1,105 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.dwinovo.safrag.mapper.KnowledgeBaseMapper">
+
+    <resultMap id="KnowledgeBaseMap" type="com.dwinovo.safrag.pojo.KnowledgeBase">
+        <id property="id" column="id"/>
+        <result property="userId" column="user_id"/>
+        <result property="name" column="name"/>
+        <result property="description" column="description"/>
+        <result property="createdAt" column="created_at"/>
+        <result property="updatedAt" column="updated_at"/>
+        <result property="ownerName" column="owner_name"/>
+        <result property="ownerLevelName" column="owner_level_name"/>
+        <result property="ownerAvatar" column="owner_avatar"/>
+        <result property="ownerPriority" column="owner_priority"/>
+    </resultMap>
+
+    <insert id="insert" parameterType="com.dwinovo.safrag.pojo.KnowledgeBase" useGeneratedKeys="true" keyProperty="id">
+        INSERT INTO knowledge_bases (user_id, name, description, created_at, updated_at)
+        VALUES (#{userId}, #{name}, #{description}, NOW(), NOW())
+    </insert>
+
+    <delete id="deleteByIdAndUserId" parameterType="map">
+        DELETE FROM knowledge_bases
+        WHERE id = #{id} AND user_id = #{userId}
+    </delete>
+
+    <select id="listByUserId" parameterType="long" resultMap="KnowledgeBaseMap">
+        SELECT kb.id,
+               kb.user_id,
+               kb.name,
+               kb.description,
+               kb.created_at,
+               kb.updated_at,
+               u.username AS owner_name,
+               lvl.name AS owner_level_name,
+               u.avatar_url AS owner_avatar,
+               lvl.priority AS owner_priority
+        FROM knowledge_bases kb
+        LEFT JOIN user u ON kb.user_id = u.id
+        LEFT JOIN levels lvl ON u.level_id = lvl.id
+        WHERE kb.user_id = #{userId}
+        ORDER BY kb.created_at ASC, kb.id ASC
+    </select>
+
+    <select id="findByIdAndUserId" resultMap="KnowledgeBaseMap">
+        SELECT kb.id,
+               kb.user_id,
+               kb.name,
+               kb.description,
+               kb.created_at,
+               kb.updated_at,
+               u.username AS owner_name,
+               lvl.name AS owner_level_name,
+               u.avatar_url AS owner_avatar,
+               lvl.priority AS owner_priority
+        FROM knowledge_bases kb
+        LEFT JOIN user u ON kb.user_id = u.id
+        LEFT JOIN levels lvl ON u.level_id = lvl.id
+        WHERE kb.id = #{id}
+          AND kb.user_id = #{userId}
+        LIMIT 1
+    </select>
+
+    <select id="findById" parameterType="long" resultMap="KnowledgeBaseMap">
+        SELECT kb.id, kb.user_id, kb.name, kb.description, kb.created_at, kb.updated_at,
+               u.username AS owner_name, lvl.name AS owner_level_name, u.avatar_url AS owner_avatar,
+               lvl.priority AS owner_priority
+        FROM knowledge_bases kb
+        LEFT JOIN user u ON kb.user_id = u.id
+        LEFT JOIN levels lvl ON u.level_id = lvl.id
+        WHERE kb.id = #{id}
+        LIMIT 1
+    </select>
+
+    <update id="updateByIdAndUserId">
+        UPDATE knowledge_bases
+        SET
+            name = #{name},
+            description = #{description},
+            updated_at = NOW()
+        WHERE id = #{id}
+          AND user_id = #{userId}
+    </update>
+
+    <select id="listAvailableByPriority" parameterType="map" resultMap="KnowledgeBaseMap">
+        SELECT kb.id,
+               kb.user_id,
+               kb.name,
+               kb.description,
+               kb.created_at,
+               kb.updated_at,
+               u.username AS owner_name,
+               lvl.name AS owner_level_name,
+               u.avatar_url AS owner_avatar,
+               lvl.priority AS owner_priority
+        FROM knowledge_bases kb
+        INNER JOIN user u ON kb.user_id = u.id
+        LEFT JOIN levels lvl ON u.level_id = lvl.id
+        WHERE kb.user_id &lt;&gt; #{userId}
+          AND (lvl.priority IS NULL OR lvl.priority &gt;= #{priority})
+        ORDER BY COALESCE(lvl.priority, 2147483647) ASC, kb.created_at ASC, kb.id ASC
+    </select>
+
+</mapper>

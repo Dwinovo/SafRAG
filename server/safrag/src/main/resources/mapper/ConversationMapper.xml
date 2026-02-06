@@ -1,0 +1,45 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.dwinovo.safrag.mapper.ConversationMapper">
+
+    <resultMap id="ConversationMap" type="com.dwinovo.safrag.pojo.Conversation">
+        <id property="id" column="id"/>
+        <result property="userId" column="user_id"/>
+        <result property="title" column="title"/>
+        <result property="createdAt" column="created_at"/>
+        <result property="updatedAt" column="updated_at"/>
+    </resultMap>
+
+    <insert id="insert" parameterType="com.dwinovo.safrag.pojo.Conversation" useGeneratedKeys="true" keyProperty="id">
+        INSERT INTO conversations (user_id, title, created_at, updated_at)
+        VALUES (#{userId}, #{title}, NOW(), NOW())
+    </insert>
+
+    <delete id="deleteByIdAndUserId" parameterType="map">
+        DELETE FROM conversations
+        WHERE id = #{id} AND user_id = #{userId}
+    </delete>
+
+    <select id="listByUserId" parameterType="long" resultMap="ConversationMap">
+        SELECT id, user_id, title, created_at, updated_at
+        FROM conversations
+        WHERE user_id = #{userId}
+        ORDER BY updated_at DESC
+    </select>
+
+    <select id="countByIdAndUserId" parameterType="map" resultType="int">
+        SELECT COUNT(1)
+        FROM conversations
+        WHERE id = #{id} AND user_id = #{userId}
+    </select>
+
+    <update id="updateTitleByIdAndUserId" parameterType="map">
+        UPDATE conversations
+        SET title = #{title}, updated_at = NOW()
+        WHERE id = #{id} AND user_id = #{userId}
+    </update>
+
+</mapper>
+
+
+
