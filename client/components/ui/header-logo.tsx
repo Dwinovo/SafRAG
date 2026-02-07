@@ -12,7 +12,7 @@ export function HeaderLogo({ className, href = "/", priority = false }: HeaderLo
   return (
     <Link href={href as any} aria-label="home" className={cn("inline-flex items-center", className)}>
       <Image
-        src="/logo.png"
+        src="/logo.svg"
         alt="御典"
         width={140}
         height={36}

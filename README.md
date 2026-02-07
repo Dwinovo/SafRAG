@@ -1,15 +1,25 @@
-# SafRAG: 可证明安全的检索增强生成系统
+<div align="center">
+  
+  <img src="assets/logo.svg" width="200" alt="SafRAG Logo" style="display: inline-block; vertical-align: middle; margin-right: 20px;"/>
+  
+  <p style="font-size: 24px; font-weight: bold;">御典：可证明安全的检索增强生成系统</p>
 
-[![License](https://img.shields.io/badge/license-MIT-blue.svg)](LICENSE)
-[![Docker](https://img.shields.io/badge/docker-compose-supported-green.svg)](docker-compose.yml)
+  [简体中文](README.md) | [English](README_EN.md)
 
-[English Version](README_EN.md)
+  [![Paper](https://img.shields.io/badge/Paper-arXiv-red)](https://arxiv.org/abs/2508.01084)
+  ![Python Version](https://img.shields.io/badge/python-3.9%2B-blue)
+  ![License](https://img.shields.io/badge/license-MIT-green)
+</div>
+
+<div align="center">
+  <img src="assets/framework.png" alt="AgentMark Overview"/>
+</div>
 
 ---
 
-**SafRAG** 是一个实现了**权限控制**与**分级加密**的检索增强生成（RAG）系统，旨在解决企业级 RAG 应用中的数据安全与隐私保护问题。
+**御典** 是一个实现了**权限控制**与**分级加密**的检索增强生成（RAG）系统，旨在解决企业级 RAG 应用中的数据安全与隐私保护问题。
 
-通过引入严格的**访问控制层**和**分级加密**机制，SafRAG 确保只有具备相应权限的用户才能检索和访问特定的知识库内容，防止敏感信息在 RAG 检索过程中泄露。
+通过引入严格的**访问控制层**和**分级加密**机制，御典 确保只有具备相应权限的用户才能检索和访问特定的知识库内容，防止敏感信息在 RAG 检索过程中泄露。
 
 ### 核心特性
 
@@ -22,22 +32,7 @@
     *   **RAG 服务**: Python (FastAPI) 提供核心的 AI 检索能力。
 *   **📦 容器化部署**: 提供完整的 Docker Compose 支持，一键启动所有服务（MinIO, MySQL, ChromaDB, Web App）。
 
-### 引用
 
-本项目基于以下论文的核心思想：
-
-> **Provably secure retrieval-augmented generation**
-> *Pengcheng Zhou, Yinglun Feng, Zhongliang Yang*
-> arXiv preprint arXiv:2508.01084, 2025
-
-```bibtex
-@article{zhou2025provably,
-  title={Provably secure retrieval-augmented generation},
-  author={Zhou, Pengcheng and Feng, Yinglun and Yang, Zhongliang},
-  journal={arXiv preprint arXiv:2508.01084},
-  year={2025}
-}
-```
 
 ### 快速开始
 
@@ -51,7 +46,7 @@
 1.  **克隆仓库**
 
     ```bash
-    git clone https://github.com/your-username/SafRAG.git
+    git clone https://github.com/Dwinovo/SafRAG
     cd SafRAG
     ```
 
@@ -76,7 +71,6 @@
 
     *   **Web 前端**: [http://localhost:3000](http://localhost:3000)
     *   **MinIO 控制台**: [http://localhost:9001](http://localhost:9001) (默认账号密码见 `.env`)
-    *   **API 文档**: [http://localhost:8080/doc.html](http://localhost:8080/doc.html) (视后端配置而定)
 
 ### 系统架构
 
@@ -93,3 +87,16 @@
 ### License
 
 [MIT](LICENSE) © 2025 SafRAG Contributors
+
+### 引用
+
+本项目基于以下论文的核心思想：
+
+```bibtex
+@article{zhou2025provably,
+  title={Provably secure retrieval-augmented generation},
+  author={Zhou, Pengcheng and Feng, Yinglun and Yang, Zhongliang},
+  journal={arXiv preprint arXiv:2508.01084},
+  year={2025}
+}
+```
